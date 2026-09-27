@@ -60,21 +60,16 @@ Single file. Vanilla JavaScript, no framework, no bundler.
 Everything lives in memory — a refresh resets it. Your own profile and photo persist via
 `localStorage`.
 
-## Things that change outside the prototype sandbox
+## Maps
 
-The prototype was built to run inside a restricted frame. On GitHub Pages those limits are
-gone, so two things can be switched on:
+Tiles come from OpenStreetMap. Driving routes are worked out locally with Dijkstra over a
+simplified graph of Metro Manila arterials — good enough for distance and a sense of the
+journey, but it knows nothing about one-way streets or traffic. For real turn-by-turn,
+swap `findRoute()` for an [OSRM](https://project-osrm.org/) call; the result shape is the
+same, so the drawing code is unchanged.
 
-1. **Real map tiles.** `baseLayers()` draws a vector base map because raster tiles were
-   blocked. Replace its body with:
-
-   ```js
-   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-     { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
-   ```
-
-2. **Google Maps hand-off.** `openMaps()` falls back to a copyable link because the frame
-   blocked navigation. Outside it, `window.open` works and the dialog will not appear.
+Under a dark theme the tiles are inverted in CSS so the map does not glare against the rest
+of the interface.
 
 ## Photo credits
 

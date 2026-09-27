@@ -46,6 +46,11 @@
   font:16px/24px Chivo,system-ui,sans-serif;color:#8A9A93;text-align:center;text-decoration:none;background:transparent;border:none}
 .leaflet-container a.leaflet-popup-close-button:hover{color:#13231E}
 .leaflet-tooltip{position:absolute;padding:4px 9px;background:#13231E;border-radius:3px;color:#F1EFE7;white-space:nowrap;font-size:11.5px;pointer-events:none}
+/* A bright map under a dark interface reads badly, so tiles are inverted to match. */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.9) saturate(.85)}
+}
+:root[data-theme="dark"] .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.9) saturate(.85)}
 </style>
 <style>
 :root{
@@ -668,7 +673,7 @@ select.inp{cursor:pointer}
     <div class="mapsplit" id="mapView" hidden>
       <div class="mapwrap">
         <div id="bigMap"></div>
-        <div class="mapnote">Pin number = court-hours still bookable that day. Base map drawn as vectors; addresses and coordinates are real.</div>
+        <div class="mapnote">Pin number = court-hours still bookable that day. Driving routes are approximated from a simplified road graph.</div>
       </div>
       <aside class="mpanel" id="mapPanel"></aside>
     </div>
@@ -873,9 +878,8 @@ select.inp{cursor:pointer}
     <p class="lab">Directions</p>
     <h2 id="dlgTitle"></h2>
     <p class="ad" id="dlgAddr"></p>
-    <p class="why">This preview runs in a sandbox that blocks links to other sites, so the hand-off cannot open
-      here. Copy the link below and paste it into a browser tab &mdash; in the real app the button opens Google
-      Maps directly.</p>
+    <p class="why">Your browser blocked the pop-up, so the hand-off could not open. Copy the link below and
+      paste it into a tab, or allow pop-ups for this site and try again.</p>
     <span class="lab">Google Maps link</span>
     <div class="urlrow">
       <input class="inp" id="dlgUrl" readonly>
@@ -1691,11 +1695,15 @@ function roadKm(vid){ return routeTo(vid).km; }
 const etaMin=km=>Math.max(4,Math.round(km/18*60));
 
 function baseLayers(map){
-  /* PRODUCTION: replace this function body with one line —
-       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-         {maxZoom:19,attribution:"&copy; OpenStreetMap contributors"}).addTo(map);
-     and swap findRoute() for an OSRM call. Raster tiles and cross-origin fetches are
-     both blocked by the artifact CSP, so the base map and the router run locally here. */
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:19,
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+}
+/* Kept for routing: the road graph below is what findRoute() walks. Drawing it is no longer
+   needed now that real tiles carry the roads, but an OSRM call would replace findRoute()
+   entirely if you want turn-by-turn accuracy. */
+function drawVectorBase(map){
   L.polygon(BAY,{stroke:false,fillColor:cssVar("--water"),fillOpacity:1,interactive:false}).addTo(map);
   L.polygon(LAGUNA,{stroke:false,fillColor:cssVar("--water"),fillOpacity:1,interactive:false}).addTo(map);
   L.polyline(PASIG,{color:cssVar("--water"),weight:7,lineCap:"round",interactive:false}).addTo(map);
@@ -1705,6 +1713,7 @@ function baseLayers(map){
   PLACES.forEach(pl=>L.marker([pl[1],pl[2]],{interactive:false,keyboard:false,
     icon:L.divIcon({className:"",html:'<div class="maplabel">'+pl[0]+'</div>',iconSize:[110,14],iconAnchor:[55,7]})}).addTo(map));
 }
+void drawVectorBase;
 function venuePin(v,selected){
   const open=openCount(v,curDay,"");
   return L.divIcon({className:"",iconSize:[30,30],iconAnchor:[15,30],popupAnchor:[0,-30],
@@ -1720,7 +1729,7 @@ function popupHTML(v){
 }
 function buildMap(el,center,zoom){
   const map=L.map(el,{center:center,zoom:zoom,scrollWheelZoom:true});
-  map.attributionControl.setPrefix("").addAttribution("Simplified road network · addresses from OpenStreetMap");
+  map.attributionControl.setPrefix("");
   baseLayers(map);
   return map;
 }
