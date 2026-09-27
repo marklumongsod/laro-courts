@@ -616,6 +616,12 @@ select.inp{cursor:pointer}
   .tabs .n{margin-left:0;font-size:9.5px;padding:0 4px}
   /* the role is on every desk screen already; dropping the chip gives the tabs their row */
   .wsw,.wsdiv{display:none}
+  /* the fixed tab bar leaves the header's flex flow, so nothing pushes the account chip
+     right any more — and its dropdown, anchored to the chip, hung off the left edge */
+  .usw{margin-left:auto}
+  /* pin the panel to the viewport instead of the chip: it cannot overflow either edge
+     whatever its width or wherever the chip ends up */
+  .uswpanel{position:fixed;top:66px;left:12px;right:12px;width:auto;max-height:min(70vh,520px)}
   /* these sit at the bottom of the viewport and would hide under the bar */
   .tray{bottom:74px}
   #toast{bottom:84px}
