@@ -1327,21 +1327,26 @@ const kmTo=vid=>typeof L!=="undefined"?roadKm(vid):0;
 
 /* ===================== board ===================== */
 function renderNextUp(){
-  const up=[...myBookings()].sort((a,b)=>a.day===b.day?a.hour-b.hour:(a.day<b.day?-1:1))[0];
+  const absOf=b=>{ const i=DAYS.findIndex(x=>x.k===b.day); return (i<0?999:i)*24+b.hour; };
+  const list=[...myBookings()].sort((a,b)=>absOf(a)-absOf(b));
+  const onNow=list.find(b=>absOf(b)<=NOW_H&&NOW_H<absOf(b)+1);
+  const up=onNow||list.find(b=>absOf(b)>NOW_H);
   const el=document.getElementById("nextup");
   if(!up){ el.innerHTML='<div class="empty">Nothing booked. Open Courts to get on the calendar.</div>'; return; }
   const v=venue(up.vid), d=DAYS.find(x=>x.k===up.day);
-  const hrs=(DAYS.indexOf(d)*24)+up.hour-NOW_H;
-  const cd=hrs>=24?Math.floor(hrs/24)+"d "+Math.round(hrs%24)+"h":Math.floor(hrs)+"h "+String(Math.round((hrs%1)*60)).padStart(2,"0")+"m";
+  const hrs=onNow?(absOf(up)+1-NOW_H):(absOf(up)-NOW_H);
+  const cd=hrs>=24?Math.floor(hrs/24)+"d "+Math.round(hrs%24)+"h"
+    :(hrs>=1?Math.floor(hrs)+"h "+String(Math.round((hrs%1)*60)).padStart(2,"0")+"m"
+            :Math.round(hrs*60)+"m");
   el.innerHTML='<div class="nextup"><div>'+
-    '<p class="lab">Next up</p><h2>'+esc(v.name)+'</h2>'+
+    '<p class="lab">'+(onNow?"On court now":"Next up")+'</p><h2>'+esc(v.name)+'</h2>'+
     '<p class="addr">'+esc(v.addr)+'</p>'+
     '<p class="when">'+d.dow+' '+d.d+' '+d.m+' &middot; '+hRange(up.hour,up.hour+1)+' &middot; '+up.court+
       (lineupNames(up)?' &middot; with '+esc(lineupNames(up)):"")+'</p>'+
     '<div class="acts"><button class="btn hero sm" data-venue="'+v.id+'">Open court</button>'+
-    '<button class="btn line sm" data-gmaps="'+v.id+'">Directions</button>'+
+    mapsLink(v.id,"Directions")+
     '<button class="btn line sm" data-cancel="'+up.id+'">Cancel</button></div></div>'+
-    '<div class="cd"><span class="big">'+cd+'</span><span class="lab">until start</span></div></div>';
+    '<div class="cd"><span class="big">'+cd+'</span><span class="lab">'+(onNow?"left on court":"until start")+'</span></div></div>';
 }
 function renderStrip(){
   const list=liveVenues().map(v=>({v:v,n:openSoon(v)})).sort((a,b)=>b.n-a.n);
@@ -1793,7 +1798,7 @@ function renderMapPanel(){
         v.courts.length+' courts &times; '+HOURS.filter(h=>!closedSlot(v,h)).length+' bookable hours</p></div>'+
       '<div class="btns"><button class="btn sm" data-venue="'+v.id+'">Open court</button>'+
         '<button class="btn line sm" data-nav="'+v.id+'">Route</button>'+
-        '<button class="btn line sm" data-gmaps="'+v.id+'">Maps</button>'+
+        mapsLink(v.id,"Maps")+
         '<button class="btn line sm" data-mapsel="">Back</button></div>'+
       (ph?'<p class="cr">Stock photo &middot; '+esc(ph.credit)+' &middot; '+esc(ph.lic)+' &middot; not this venue</p>':"")+
     '</div>';
@@ -1816,7 +1821,7 @@ function renderRouteBar(v,r){
     '<span style="flex:1;min-width:190px"><span class="lab">'+(r.via.length?"Via":"Route")+'</span>'+
       '<div style="font-size:13.5px;font-weight:600">'+(r.via.length?esc(r.via.join(" → ")):"Local roads")+'</div></span>'+
     '<span style="display:flex;gap:8px"><button class="btn line sm" data-nav="'+v.id+'">Recentre</button>'+
-    '<button class="btn sm" data-gmaps="'+v.id+'">Open in Maps</button></span>';
+    mapsLink(v.id,"Open in Maps","btn sm")+'</span>';
 }
 function clearRoute(map){
   if(MAP.route){ MAP.route.forEach(l=>map.removeLayer(l)); MAP.route=null; }
@@ -1881,7 +1886,7 @@ function renderBookings(){
       '<div class="w">'+hRange(b.hour,b.hour+1)+'</div>'+
       (guest?'<div class="m">Booked by '+esc(player(b.uid)?player(b.uid).name:"someone")+'</div>'
             :(names?'<div class="m">With '+esc(names)+'</div>':""))+'</div>'+
-      '<div style="display:flex;gap:8px"><button class="btn line sm" data-gmaps="'+v.id+'">Directions</button>'+
+      '<div style="display:flex;gap:8px">'+mapsLink(v.id,"Directions")+
       (guest?'<button class="btn line sm" data-leave="'+b.id+'">Leave</button>'
             :'<button class="btn danger sm" data-cancel="'+b.id+'">Cancel</button>')+'</div></div>';
   }).join("") : '<div class="empty">Nothing booked yet. Open Courts to get on the calendar.</div>';
@@ -2114,12 +2119,12 @@ reindex();                      /* so the curated floor can see player bookings 
 [["Court 1",7,"aldrin",4,"paid","done"],["Court 1",8,"aldrin",4,"paid","done"],["Court 1",10,"jomar",4,"paid","done"],
  ["Court 1",13,"kaye",2,"desk","noshow"],["Court 1",14,"rina",4,"paid","in"],["Court 1",18,null,12,"paid","confirmed"],
  ["Court 1",19,null,12,"paid","confirmed"],["Court 1",20,"bern",4,"desk","confirmed"],
- ["Court 2",6,"mika",2,"paid","done"],["Court 2",9,"markl",4,"desk","done"],["Court 2",11,"dex",4,"paid","done"],
+ ["Court 2",6,"mika",2,"paid","done"],["Court 2",9,"markl",4,"desk","done"],["Court 2",11,"bg1",4,"paid","done"],
  ["Court 2",15,"ellie",4,"paid","confirmed"],["Court 2",17,"paolo",4,"desk","confirmed"],["Court 2",18,"markl",4,"desk","confirmed"],
  ["Court 2",21,"rina",4,"paid","confirmed"],
  ["Court 3",8,null,6,"paid","done"],["Court 3",12,null,0,"","blocked"],["Court 3",13,null,0,"","blocked"],
  ["Court 3",16,"kaye",4,"desk","confirmed"],["Court 3",19,"jomar",4,"paid","confirmed"],["Court 3",20,"mika",4,"paid","confirmed"],
- ["Court 4",7,"bern",4,"paid","done"],["Court 4",14,"dex",4,"paid","in"],["Court 4",17,"ellie",2,"desk","confirmed"],
+ ["Court 4",7,"bern",4,"paid","done"],["Court 4",14,"bg7",4,"paid","in"],["Court 4",17,"ellie",2,"desk","confirmed"],
  ["Court 4",19,"aldrin",4,"paid","confirmed"],["Court 4",20,"chris",4,"paid","confirmed"],["Court 4",21,null,6,"desk","confirmed"]
 ].forEach(r=>{
   if(IDX[ixKey("rally",DAYS[0].k,r[0],r[1])]) return;      /* player bookings win */
@@ -2127,7 +2132,7 @@ reindex();                      /* so the curated floor can see player bookings 
     uid:r[2],
     who:r[2]?null:(r[5]==="blocked"?"Maintenance — net replacement":"BGC Dinkers (club)"),
     players:r[2]?null:r[3],pay:r[4],status:r[5],
-    with:(r[2]&&r[5]!=="blocked")?mateSet(r[2],r[1],r[1]%3===0?1:3):null});
+    with:(r[2]&&r[5]!=="blocked")?mateSet(r[2],r[1],r[1]%3===0?1:3,true):null});
 });
 SEEDED.add("rally|"+DAYS[0].k);
 /* Exactly two ways in: through the app with an account, or at the desk without one.
@@ -2720,6 +2725,12 @@ const mdVal=id=>{ const e=document.getElementById(id); return e?String(e.value).
 const mdOrVal=mdVal;
 function mdRow(label,field){ return '<div class="editrow" style="grid-template-columns:132px 1fr"><label>'+label+'</label>'+field+'</div>'; }
 
+/* A link the user clicked is never pop-up blocked; window.open is. */
+function mapsLink(vid,label,cls){
+  const v=venue(vid);
+  return '<a class="'+(cls||"btn line sm")+'" href="'+esc(mapsURL(v))+'" target="_blank" rel="noopener" '+
+    'style="text-decoration:none;display:inline-block">'+label+'</a>';
+}
 function mapsURL(v){
   return "https://www.google.com/maps/dir/?api=1&origin="+encodeURIComponent(MY_ADDR)+
     "&destination="+encodeURIComponent(v.coord?v.coord[0]+","+v.coord[1]:v.addr)+"&travelmode=driving";
@@ -2782,8 +2793,6 @@ document.addEventListener("click",e=>{
   if(!e.target.closest(".usw")) closeSwitcher();
   const nv=e.target.closest("[data-nav]");
   if(nv){ showRoute(nv.dataset.nav); return; }
-  const gm=e.target.closest("[data-gmaps]");
-  if(gm){ openMaps(gm.dataset.gmaps); return; }
   const mem=e.target.closest("[data-mem]");
   if(mem){ openMemberEditor(mem.dataset.mem); return; }
   const memd=e.target.closest("[data-mem-del]");
