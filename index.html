@@ -1,3 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Court rental management for pickleball venues in Metro Manila.">
+<link rel="icon" href="brand/laro-mark.svg" type="image/svg+xml">
+<style>
+/* Base the artifact host used to supply. Without it `hidden` loses to an element's
+   own display rule, so overlays and the booking tray render on page load. */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+img,svg{max-width:100%}
+[hidden]{display:none!important}
+</style>
 <title>Larô Courts</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -602,7 +618,13 @@ select.inp{cursor:pointer}
   .prow .rt{grid-column:2}
 }
 </style>
-
+<style>
+/* Last word on visibility. `hidden` and a class that sets display have the same
+   specificity, so this has to come after the page styles to be sure of winning. */
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
 <header class="top">
   <div class="topin">
     <div class="brand">
@@ -3097,3 +3119,5 @@ workspace=defaultWorkspace(); applyRole(); renderNextUp(); renderStrip(); render
 const boot=navItems()[0]; if(boot) goto(boot.go);
 startLive();
 </script>
+</body>
+</html>
