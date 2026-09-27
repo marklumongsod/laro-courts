@@ -19,28 +19,19 @@ img,svg{max-width:100%}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;500;600;700;900&family=Chivo+Mono:wght@400;500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>
-/* Leaflet 1.9.4 core stylesheet, inlined — the artifact CSP blocks external stylesheets */
+/* Larô skin over Leaflet. The stylesheet above is the real one — an earlier hand-inlined
+   subset was missing 83 of its 131 rules, including the guards that keep tiles and the
+   route overlay from collapsing. Only our own overrides live here now. */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,
 .leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}
 .leaflet-container{overflow:hidden;-webkit-tap-highlight-color:transparent;background:var(--land);font:inherit}
-.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow{-webkit-user-select:none;-moz-user-select:none;user-select:none;-webkit-user-drag:none}
-.leaflet-tile{filter:inherit;visibility:hidden}
-.leaflet-tile-loaded{visibility:inherit}
 .leaflet-zoom-box{width:0;height:0;box-sizing:border-box;z-index:800}
-.leaflet-overlay-pane{z-index:400}.leaflet-shadow-pane{z-index:500}.leaflet-marker-pane{z-index:600}
-.leaflet-tooltip-pane{z-index:650}.leaflet-popup-pane{z-index:700}.leaflet-map-pane canvas{z-index:100}.leaflet-map-pane svg{z-index:200}
 .leaflet-control{position:relative;z-index:800;pointer-events:auto;float:left;clear:both}
-.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
-.leaflet-top{top:0}.leaflet-right{right:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}
 .leaflet-right .leaflet-control{float:right;margin-right:10px}
-.leaflet-top .leaflet-control{margin-top:10px}
-.leaflet-bottom .leaflet-control{margin-bottom:10px}
-.leaflet-left .leaflet-control{margin-left:10px}
 .leaflet-zoom-animated{transform-origin:0 0}
 .leaflet-zoom-anim .leaflet-zoom-animated{will-change:transform;transition:transform .25s cubic-bezier(0,0,.25,1)}
-.leaflet-zoom-anim .leaflet-zoom-hide{visibility:hidden}
-.leaflet-interactive{cursor:pointer}
 .leaflet-grab{cursor:grab}
 .leaflet-dragging .leaflet-grab,.leaflet-dragging .leaflet-grab .leaflet-interactive{cursor:grabbing}
 .leaflet-pane>svg path,.leaflet-image-layer{pointer-events:auto}
@@ -52,7 +43,6 @@ img,svg{max-width:100%}
 .leaflet-bar a:hover{background:#f2f2ee}
 .leaflet-bar a.leaflet-disabled{cursor:default;background:#f4f4f0;color:#bbb}
 .leaflet-control-attribution{background:rgba(255,255,255,.82);padding:2px 7px;font-size:10px;color:#4C625A;border-radius:3px 0 0 0}
-.leaflet-popup{position:absolute;text-align:center;margin-bottom:20px}
 .leaflet-popup-content-wrapper{padding:1px;text-align:left;border-radius:4px;background:#fff;color:#13231E;box-shadow:0 3px 16px rgba(0,0,0,.3)}
 .leaflet-popup-content{margin:13px 16px;line-height:1.4;font-size:13.5px;min-width:160px}
 .leaflet-popup-content p{margin:0}
@@ -1727,7 +1717,7 @@ function roadKm(vid){ return routeTo(vid).km; }
 const etaMin=km=>Math.max(4,Math.round(km/18*60));
 
 function baseLayers(map){
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
     maxZoom:19,
     attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map);
