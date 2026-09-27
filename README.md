@@ -86,7 +86,19 @@ A few details that matter if you poke at it:
 
 ## Maps
 
-Tiles come from OpenStreetMap. Driving routes come from [OSRM](https://project-osrm.org/),
+Tiles come from Esri — the street map in light mode, the dark canvas in dark mode.
+They are two real basemaps rather than one inverted in CSS, which is what the map used
+to do: inverting a light map turned water orange and made labels hard to read. The dark
+canvas is only rendered to zoom 16, so `maxNativeZoom` lets Leaflet upscale beyond that
+instead of serving blank tiles. The map follows the system theme and swaps without a
+reload. Note Esri's tile path is `{z}/{y}/{x}`, not `{z}/{x}/{y}`.
+
+The route is drawn as a casing under a coloured line, the way Maps and Waze draw one —
+the pale edge is what keeps it legible over both a light street grid and a dark one.
+Its two colours are theme tokens (`--route`, `--route-case`), so it repaints on a
+light/dark flip.
+
+Driving routes come from [OSRM](https://project-osrm.org/),
 which routes over the full OpenStreetMap road network, so the line on the map follows real
 streets and respects one-way restrictions. It is not traffic-aware, and the estimated drive
 time is our own figure — a flat 18 km/h, which is closer to Metro Manila than OSRM's
