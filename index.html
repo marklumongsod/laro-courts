@@ -595,8 +595,40 @@ select.inp{cursor:pointer}
   .cam{width:28px;height:28px;right:-6px;bottom:-6px}
 }
 @media (max-width:680px){
-  main{padding:18px 14px 80px}
+  main{padding:18px 14px 104px}
   .topin{padding:0 14px;gap:14px}
+
+  /* The tab strip cannot share a 60px row with the brand and the account chip. At 390px
+     the owner could see one of six tabs and the rest scrolled off with nothing to say so.
+     On a phone it becomes a bottom bar, where the thumb already is and every tab shows. */
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:45;flex:none;gap:0;overflow-x:auto;
+    background:var(--surface);border-top:1px solid var(--line);
+    padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -8px 20px rgba(0,0,0,.20)}
+  /* grow to share the bar when there is room, but never shrink past the label — below
+     that the strip scrolls, which is legible, rather than letting the words collide */
+  .tabs button{flex:1 0 auto;min-width:56px;min-height:50px;padding:9px 9px;font-size:11px;
+    display:flex;align-items:center;justify-content:center;gap:5px}
+  .tabs button[aria-current="true"]::after{top:0;bottom:auto;left:7px;right:7px}
+  .tabs .n{margin-left:0;font-size:9.5px;padding:0 4px}
+  /* the role is on every desk screen already; dropping the chip gives the tabs their row */
+  .wsw,.wsdiv{display:none}
+  /* these sit at the bottom of the viewport and would hide under the bar */
+  .tray{bottom:74px}
+  #toast{bottom:84px}
+
+  /* four facts on one flex line orphaned "Reviews" onto a row of its own */
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+
+  /* thumbs, not cursors */
+  .btn{min-height:42px;padding:10px 16px}
+  .btn.sm{min-height:36px;padding:8px 13px}
+  .back{padding:9px 0;font-size:11px;min-height:38px;display:inline-flex;align-items:center}
+  .more{min-height:34px;padding:6px 0}
+  .leaflet-touch .leaflet-bar a,.leaflet-bar a{width:38px;height:38px;line-height:38px;font-size:19px}
+}
+@media (max-width:360px){
+  .tabs button{font-size:10px;padding:9px 7px;gap:4px;min-width:50px}
+  .facts{gap:12px 14px}
   .mechip b,.mechip small{display:none}
   .axis,.lanerow{grid-template-columns:62px 1fr;gap:8px}
   .lanes{padding:14px 12px 4px}
