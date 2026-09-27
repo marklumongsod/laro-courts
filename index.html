@@ -398,7 +398,8 @@ select.inp{cursor:pointer}
 @keyframes paintin{0%{background:var(--clay);transform:scaleY(.5)}100%{background:var(--pine);transform:none}}
 .nowline{position:absolute;top:29px;bottom:6px;width:1.5px;background:var(--clay);pointer-events:none;z-index:2}
 .nowline::before{content:"";position:absolute;top:-3.5px;left:-3px;width:7.5px;height:7.5px;border-radius:50%;background:var(--clay)}
-.nowline::after{content:"NOW";position:absolute;top:-15px;left:-10px;font-family:"Chivo Mono",monospace;font-size:7.5px;color:var(--clay)}
+.nowline::after{content:"NOW";position:absolute;top:-15px;left:-10px;font-family:"Chivo Mono",monospace;
+  font-size:7.5px;color:var(--clay);background:var(--surface);padding:1px 2px;border-radius:2px;line-height:1}
 .legend{display:flex;gap:17px;flex-wrap:wrap;padding:6px 18px 15px;font-size:12.5px;color:var(--ink2)}
 .legend i{width:16px;height:10px;border-radius:2px;display:inline-block;margin-right:6px;vertical-align:-1px;border:1px solid var(--line)}
 .seg.s-confirmed{background:var(--pine);border-left-color:rgba(255,255,255,.2)}
@@ -629,11 +630,15 @@ select.inp{cursor:pointer}
   /* Sixteen hours across ~190px left every slot about 12px wide — too small to hit.
      The grid scrolls sideways at a thumb-sized column instead, with the court name
      pinned to the left edge so you can still tell which row you are on. */
-  .lanes{padding:14px 12px 4px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
-  .axis,.lanerow{grid-template-columns:66px 1fr;gap:0 10px;width:max-content;min-width:100%}
+  /* No horizontal padding on the scroller itself: a sticky column pins to the content
+     edge, so padding there leaves a gap the scrolled lane shows straight through. The
+     inset moves onto the sticky column and the row's trailing edge instead. */
+  .lanes{padding:14px 0 4px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+  .axis,.lanerow{grid-template-columns:78px 1fr;gap:0 10px;width:max-content;min-width:100%;
+    padding-right:12px}
   .ticks,.lane{min-width:704px}                      /* 16 hours x 44px */
   .lanelabel,.axis>div:first-child{position:sticky;left:0;z-index:3;
-    background:var(--surface);padding-right:8px}
+    background:var(--surface);padding:0 8px 0 12px}
   .ticks span{font-size:9.5px}
   .seg{font-size:9px}
   .nrow{grid-template-columns:52px 1fr;row-gap:4px}
