@@ -52,8 +52,11 @@ img,svg{max-width:100%}
   font:16px/24px Chivo,system-ui,sans-serif;color:#8A9A93;text-align:center;text-decoration:none;background:transparent;border:none}
 .leaflet-container a.leaflet-popup-close-button:hover{color:#13231E}
 .leaflet-tooltip{position:absolute;padding:4px 9px;background:#13231E;border-radius:3px;color:#F1EFE7;white-space:nowrap;font-size:11.5px;pointer-events:none}
-/* Tiles are no longer inverted: the dark map is a real dark basemap, so labels stay
-   readable and water stays blue instead of coming out orange. */
+/* A bright map under a dark interface reads badly, so tiles are inverted to match. */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.9) saturate(.85)}
+}
+:root[data-theme="dark"] .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.9) saturate(.85)}
 </style>
 <style>
 :root{
@@ -1821,39 +1824,11 @@ function refineRoute(vid,after){
 }
 const etaMin=km=>Math.max(4,Math.round(km/18*60));
 
-/* Esri's tiles, drawn the way a navigation app draws a map: roads coloured by class,
-   blue water, place labels. Two real styles rather than one inverted in CSS, so dark
-   mode keeps its water blue and its labels legible instead of the orange cast the
-   filter gave everything. Note the {z}/{y}/{x} order — Esri is not {z}/{x}/{y}.
-   The dark canvas is only rendered to zoom 16, so maxNativeZoom lets Leaflet upscale
-   past that rather than serve blank tiles. */
-const BASEMAP={
-  light:{url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
-    native:19,
-    attr:'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'},
-  dark:{url:"https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
-    native:16,
-    attr:'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}
-};
-const prefersDark=()=>{
-  const forced=document.documentElement.getAttribute("data-theme");
-  if(forced) return forced==="dark";
-  return !!(window.matchMedia&&window.matchMedia("(prefers-color-scheme:dark)").matches);
-};
-const TILES=[];
 function baseLayers(map){
-  const st=BASEMAP[prefersDark()?"dark":"light"];
-  const layer=L.tileLayer(st.url,{maxZoom:19,maxNativeZoom:st.native,attribution:st.attr}).addTo(map);
-  TILES.push(layer);
-}
-/* follow the system theme without a reload */
-if(window.matchMedia){
-  const mq=window.matchMedia("(prefers-color-scheme:dark)");
-  const swap=()=>{ const st=BASEMAP[prefersDark()?"dark":"light"];
-    TILES.forEach(l=>{ try{ l.options.maxNativeZoom=st.native; l.setUrl(st.url); }catch(e){} });
-    if(typeof redrawRoutes==="function") redrawRoutes(); };
-  if(mq.addEventListener) mq.addEventListener("change",swap);
-  else if(mq.addListener) mq.addListener(swap);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:19,
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
 }
 /* Kept for routing: the road graph below is what findRoute() walks. Drawing it is no longer
    needed now that real tiles carry the roads, but an OSRM call would replace findRoute()
@@ -1978,12 +1953,6 @@ function renderRouteBar(v,r){
 function clearRoute(map){
   if(MAP.route){ MAP.route.forEach(l=>map.removeLayer(l)); MAP.route=null; }
 }
-/* the route is drawn with theme tokens, so a light/dark flip has to repaint it */
-function redrawRoutes(){
-  const onV=document.getElementById("s-venue").classList.contains("on");
-  const vid=onV?(curVenue&&curVenue.id):mapSel;
-  if(vid) showRoute(vid,true);
-}
 function showRoute(vid,quiet){
   if(!hasL()) return;
   const v=venue(vid), onV=document.getElementById("s-venue").classList.contains("on");
@@ -1991,8 +1960,8 @@ function showRoute(vid,quiet){
   if(!map) return;
   clearRoute(map);
   const r=routeTo(vid);
-  /* casing under the line, as Maps and Waze draw it — the pale edge is what keeps a
-     route legible over both a light street grid and a dark one */
+  /* casing under the line, as Maps and Waze draw it — the pale edge keeps the route
+     legible over the base map in either theme */
   MAP.route=[
     L.polyline(r.pts,{color:cssVar("--route-case"),weight:10,opacity:.9,lineCap:"round",lineJoin:"round",interactive:false}),
     L.polyline(r.pts,{color:cssVar("--route"),weight:5.5,lineCap:"round",lineJoin:"round",interactive:false})
