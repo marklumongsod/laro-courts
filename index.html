@@ -622,6 +622,11 @@ select.inp{cursor:pointer}
 /* Last word on visibility. `hidden` and a class that sets display have the same
    specificity, so this has to come after the page styles to be sure of winning. */
 [hidden]{display:none!important}
+
+/* Leaflet sizes tiles and the route overlay in pixels inside panes that shrink-wrap
+   to zero width, so the img/svg max-width above resolves to 0 and the map goes blank.
+   This is Leaflet's own guard; it is missing from the inlined copy of its stylesheet. */
+.leaflet-container img,.leaflet-pane svg,.leaflet-pane img{max-width:none!important;max-height:none!important}
 </style>
 </head>
 <body>
