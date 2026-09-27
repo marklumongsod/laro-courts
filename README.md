@@ -102,8 +102,10 @@ Routes are requested once per venue and cached. The public OSRM demo server has 
 guarantee and is not meant to carry production traffic; a real deployment would self-host it
 or use a paid directions API.
 
-Under a dark theme the tiles are inverted in CSS so the map does not glare against the rest
-of the interface.
+The tiles are desaturated in CSS. OpenStreetMap's own palette competes with the interface —
+yellow trunk roads next to optic-yellow pins — so muting it lets the pins and the route carry
+the colour. The treatment is one token per theme (`--map-tint`), with a couple of tinted
+alternatives noted beside it, and the dark theme's also inverts so the map does not glare.
 
 The route is drawn as a pale casing under a coloured line, the way a navigation app draws
 one — the edge is what keeps it legible over the base map. Both colours are theme tokens

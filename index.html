@@ -52,11 +52,13 @@ img,svg{max-width:100%}
   font:16px/24px Chivo,system-ui,sans-serif;color:#8A9A93;text-align:center;text-decoration:none;background:transparent;border:none}
 .leaflet-container a.leaflet-popup-close-button:hover{color:#13231E}
 .leaflet-tooltip{position:absolute;padding:4px 9px;background:#13231E;border-radius:3px;color:#F1EFE7;white-space:nowrap;font-size:11.5px;pointer-events:none}
-/* A bright map under a dark interface reads badly, so tiles are inverted to match. */
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.9) saturate(.85)}
-}
-:root[data-theme="dark"] .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.9) saturate(.85)}
+/* OpenStreetMap's own palette competes with the interface — yellow trunk roads next to
+   optic-yellow pins, and a bright sheet under a dark UI. Desaturating it lets the pins and
+   the route carry the colour. One token per theme, so the whole treatment is one line:
+     green    grayscale(.55) sepia(.45) hue-rotate(78deg) saturate(1.15)
+     blue     grayscale(.35) sepia(.45) hue-rotate(168deg) saturate(1.35)
+     as-is    none                      (dark needs the invert to stay dark) */
+.leaflet-tile{filter:var(--map-tint)}
 </style>
 <style>
 :root{
@@ -67,6 +69,7 @@ img,svg{max-width:100%}
   --optic:#D9E33C; --optic-lo:#EFF3C9;
   --clay:#AE5439; --clay-lo:#F0DFD6;
   --route:#1A73E8; --route-case:#FFFFFF;
+  --map-tint:grayscale(.82) contrast(.92) brightness(1.06);
   --sky:#3F7893; --sky-lo:#DCE8EE;
   --on-pine:#F4F6F1; --on-optic:#13231E; --on-ink:#F4F6F1;
   --rev:#13231E; --on-rev:#F4F6F1; --on-rev2:rgba(244,246,241,.68); --rev-line:rgba(244,246,241,.30);
@@ -84,6 +87,7 @@ img,svg{max-width:100%}
     --optic:#D9E33C; --optic-lo:#252C0D;
     --clay:#D4816A; --clay-lo:#2E1C15;
     --route:#8AB4F8; --route-case:#0B1F33;
+    --map-tint:invert(1) grayscale(.9) brightness(.86) contrast(1.05);
     --sky:#77AEC9; --sky-lo:#10262F;
     --on-pine:#061210; --on-optic:#13231E; --on-ink:#091310;
   --rev:#16271F; --on-rev:#EAF1EB; --on-rev2:rgba(234,241,235,.64); --rev-line:rgba(234,241,235,.22);
@@ -101,6 +105,7 @@ img,svg{max-width:100%}
   --optic:#D9E33C; --optic-lo:#252C0D;
   --clay:#D4816A; --clay-lo:#2E1C15;
   --route:#8AB4F8; --route-case:#0B1F33;
+  --map-tint:invert(1) grayscale(.9) brightness(.86) contrast(1.05);
   --sky:#77AEC9; --sky-lo:#10262F;
   --on-pine:#061210; --on-optic:#13231E; --on-ink:#091310;
   --rev:#16271F; --on-rev:#EAF1EB; --on-rev2:rgba(234,241,235,.64); --rev-line:rgba(234,241,235,.22);
