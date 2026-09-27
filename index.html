@@ -649,6 +649,19 @@ select.inp{cursor:pointer}
    to zero width, so the img/svg max-width above resolves to 0 and the map goes blank.
    This is Leaflet's own guard; it is missing from the inlined copy of its stylesheet. */
 .leaflet-container img,.leaflet-pane svg,.leaflet-pane img{max-width:none!important;max-height:none!important}
+
+/* realtime indicator */
+.livedot{display:inline-flex;align-items:center;gap:6px;flex:none;margin-left:2px;
+  font-family:"Chivo Mono",monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink3);padding:3px 7px;border:1px solid var(--line);border-radius:999px;white-space:nowrap}
+.livedot i{width:6px;height:6px;border-radius:50%;background:var(--pine);flex:none}
+.livedot.many{color:var(--pine);border-color:var(--pine-lo)}
+.livedot.many i{background:var(--optic)}
+.livedot.beat i{animation:livebeat .7s ease-out}
+@keyframes livebeat{0%{transform:scale(1);box-shadow:0 0 0 0 var(--optic)}
+  100%{transform:scale(1);box-shadow:0 0 0 7px transparent}}
+@media (max-width:680px){.livedot span{display:none}.livedot{padding:3px 5px;margin-left:0}}
+@media (prefers-reduced-motion:reduce){.livedot.beat i{animation:none}}
 </style>
 </head>
 <body>
@@ -672,6 +685,7 @@ select.inp{cursor:pointer}
         <rect width="64" height="64" fill="#D9E33C" mask="url(#laroHoles)"></rect>
       </svg>
       <b>Larô</b>
+      <span class="livedot" id="liveDot" hidden></span>
     </div>
     <div class="wsw" id="wsw"></div>
     <span class="wsdiv" id="wsdiv" hidden></span>
@@ -1295,7 +1309,7 @@ function refreshDesk(){
   desk={};
   BOOKINGS.forEach(b=>{ if(b.vid===DESK_VENUE.id&&b.day===DAYS[0].k) desk[b.court+"|"+b.hour]=b; });
 }
-function commit(){ reindex(); if(typeof DESK_VENUE!=="undefined") refreshDesk(); }
+function commit(){ reindex(); if(typeof DESK_VENUE!=="undefined") refreshDesk();  if(typeof publish==="function") publish(); }
 const OPEN_STATUS={confirmed:1,in:1};
 const isLive=b=>!!OPEN_STATUS[b.status];
 const HISTORY=[
@@ -1929,12 +1943,100 @@ function showRoute(vid,quiet){
 }
 
 /* ===================== live ===================== */
+/* ===================== realtime =====================
+   Static hosting gives us no server to hold a socket open, so the transport between
+   clients is BroadcastChannel. Every tab is a client and they stay in step the way
+   they would over a WebSocket: check a player in at the desk in one window and the
+   player's own window updates without a refresh. Same browser only — crossing
+   devices needs a server, which is the one thing Pages cannot provide.
+
+   Nothing is persisted. Close every window and the demo is back to its seed, which
+   is the behaviour the prototype already had. */
+const CLIENT=Math.random().toString(36).slice(2,9);
+const PEERS={};                       /* client id -> last time we heard from it */
+const HEARTBEAT=2000, STALE=6500;
+let BUS=null, applyingRemote=false, _pubT=null;
+
+const alivePeers=()=>{ const now=Date.now(); return Object.keys(PEERS).filter(i=>now-PEERS[i]<STALE); };
+/* Lowest id among the clients we can see owns the simulated traffic, so three open
+   windows do not each invent their own bookings on top of each other. */
+const amLeader=()=>alivePeers().concat(CLIENT).sort()[0]===CLIENT;
+
+const snapshot=()=>({BOOKINGS:BOOKINGS,HISTORY:HISTORY,NOTICE:NOTICE,seq:seq,seeded:[...SEEDED]});
+function adopt(st){
+  applyingRemote=true;                /* stops commit() echoing this straight back out */
+  BOOKINGS.length=0; st.BOOKINGS.forEach(b=>BOOKINGS.push(b));
+  HISTORY.length=0;  st.HISTORY.forEach(h=>HISTORY.push(h));
+  NOTICE.length=0;   st.NOTICE.forEach(n=>NOTICE.push(n));
+  seq=Math.max(seq,st.seq||0);
+  SEEDED.clear(); (st.seeded||[]).forEach(k=>SEEDED.add(k));
+  commit();
+  applyingRemote=false;
+}
+function publish(){
+  if(applyingRemote||!BUS) return;
+  /* one send per burst of mutations, and late enough to carry the NOTICE entry
+     that usually follows the commit */
+  clearTimeout(_pubT);
+  _pubT=setTimeout(()=>{ try{ BUS.postMessage({t:"state",from:CLIENT,state:snapshot()}); }catch(e){} },80);
+}
+/* repaint whatever is on screen, without show()'s scroll-to-top or nav reset */
+function repaint(){
+  const on=document.querySelector(".screen.on"), n=on?on.id.slice(2):"";
+  try{
+    if(n==="board"){ renderNextUp(); renderStrip(); renderNotice(); }
+    else if(n==="courts") renderCourts();
+    else if(n==="venue") renderBoard();
+    else if(n==="bookings") renderBookings();
+    else if(n==="players") renderPeople();
+    else if(n==="profile") renderMyProfile();
+    else if(n==="admin") renderDesk();
+    renderNav();
+  }catch(e){}
+}
+function renderLive(){
+  const el=document.getElementById("liveDot");
+  if(!el) return;
+  const n=alivePeers().length+1;
+  el.hidden=false;
+  el.className="livedot"+(n>1?" many":"");
+  el.innerHTML='<i></i><span>'+(n>1?n+" windows":"Live")+'</span>';
+  el.title=n>1 ? n+" windows open · changes sync between them"
+               : "Live · open this page in a second window to watch changes sync";
+}
+function beatLive(){
+  const el=document.getElementById("liveDot");
+  if(!el) return;
+  el.classList.remove("beat"); void el.offsetWidth; el.classList.add("beat");
+}
+function liveInit(){
+  if(typeof BroadcastChannel!=="function"){ renderLive(); return; }   /* older browsers: still works, just alone */
+  BUS=new BroadcastChannel("laro-courts");
+  BUS.onmessage=e=>{
+    const m=e.data||{};
+    if(!m.from||m.from===CLIENT) return;
+    if(m.t==="bye"){ delete PEERS[m.from]; renderLive(); return; }
+    PEERS[m.from]=Date.now();
+    if(m.t==="hello"){ if(amLeader()) publishNow(); renderLive(); return; }
+    if(m.t==="state"){ adopt(m.state); repaint(); beatLive(); }
+    renderLive();
+  };
+  BUS.postMessage({t:"hello",from:CLIENT});      /* a new window asks for the current state */
+  setInterval(()=>{ try{ BUS.postMessage({t:"beat",from:CLIENT}); }catch(e){} renderLive(); },HEARTBEAT);
+  window.addEventListener("pagehide",()=>{ try{ BUS.postMessage({t:"bye",from:CLIENT}); BUS.close(); }catch(e){} });
+  renderLive();
+}
+function publishNow(){
+  if(!BUS) return;
+  try{ BUS.postMessage({t:"state",from:CLIENT,state:snapshot()}); }catch(e){}
+}
+
 function startLive(){
   if(tick) clearInterval(tick);
   tick=setInterval(()=>{
+    /* one window owns the invented traffic; the rest receive it over the bus */
+    if(!amLeader()) return;
     const onV=document.getElementById("s-venue").classList.contains("on");
-    const onB=document.getElementById("s-board").classList.contains("on");
-    if(!onV&&!onB) return;
     const v=onV?curVenue:VENUES[Math.floor(Math.random()*VENUES.length)];
     if(!v) return;
     const slots=[];
@@ -1948,15 +2050,15 @@ function startLive(){
     commit();
     NOTICE.unshift({t:NOW_TXT,pid:who.id,vid:v.id,fresh:true,txt:"booked <b>"+s.c+"</b> at "+esc(v.name)+" for "+hLabel(s.h)});
     NOTICE=NOTICE.slice(0,9);
+    if(onV&&sel&&sel.court===s.c&&sel.hour===s.h){
+      sel=null;
+      toast(who.name.split(" ")[0]+" reserved "+s.c+" at "+hLabel(s.h)+" first. Pick another slot.",true);
+    }
+    repaint(); beatLive();
     if(onV){
-      if(sel&&sel.court===s.c&&sel.hour===s.h){
-        sel=null;
-        toast(who.name.split(" ")[0]+" reserved "+s.c+" at "+hLabel(s.h)+" first. Pick another slot.",true);
-      }
-      renderBoard();
       const seg=document.querySelector('#lanes .seg[data-court="'+s.c+'"][data-hour="'+s.h+'"]');
       if(seg) seg.classList.add("flash");
-    }else{ renderNotice(); renderStrip(); }
+    }
   },9000);
 }
 
@@ -3180,6 +3282,7 @@ document.getElementById("fPCity").addEventListener("change",renderPeople);
 
 workspace=defaultWorkspace(); applyRole(); renderNextUp(); renderStrip(); renderNotice(); renderBookings(); renderMyProfile();
 const boot=navItems()[0]; if(boot) goto(boot.go);
+liveInit();
 startLive();
 </script>
 </body>

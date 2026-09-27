@@ -60,6 +60,30 @@ Single file. Vanilla JavaScript, no framework, no bundler.
 Everything lives in memory — a refresh resets it. Your own profile and photo persist via
 `localStorage`.
 
+## Realtime
+
+Open the page in two windows. Check a player in at the desk in one and the player's own
+window updates without a refresh; book a court in one and the slot closes in the other.
+The pill beside the logo counts the windows that are connected.
+
+There is no server here — GitHub Pages only serves files — so the transport between
+clients is [`BroadcastChannel`](https://developer.mozilla.org/en-US/docs/Web/API/BroadcastChannel).
+Each tab is a client, and a change is published to the others the moment it commits.
+**This works between windows of the same browser on one machine, not between devices.**
+Crossing devices needs a server holding the connections, which is the one thing static
+hosting cannot do; with a backend the same code takes a WebSocket instead — the publish
+and adopt steps are already separated from the rendering.
+
+A few details that matter if you poke at it:
+
+- **One window owns the invented traffic.** The demo books a court for a made-up player
+  every nine seconds. The clients elect a leader so three open windows do not each
+  generate their own; if the leader closes, another takes over within a few seconds.
+- **Nothing is persisted.** Close every window and the demo returns to its seed, which is
+  how the prototype behaved before. A window opened later asks the others for the current
+  state and catches up.
+- **Browsers without `BroadcastChannel`** still run the prototype; they just run alone.
+
 ## Maps
 
 Tiles come from OpenStreetMap. Driving routes come from [OSRM](https://project-osrm.org/),
