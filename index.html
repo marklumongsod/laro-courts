@@ -625,19 +625,26 @@ select.inp{cursor:pointer}
   .back{padding:9px 0;font-size:11px;min-height:38px;display:inline-flex;align-items:center}
   .more{min-height:34px;padding:6px 0}
   .leaflet-touch .leaflet-bar a,.leaflet-bar a{width:38px;height:38px;line-height:38px;font-size:19px}
-}
-@media (max-width:360px){
-  .tabs button{font-size:10px;padding:9px 7px;gap:4px;min-width:50px}
-  .facts{gap:12px 14px}
   .mechip b,.mechip small{display:none}
-  .axis,.lanerow{grid-template-columns:62px 1fr;gap:8px}
-  .lanes{padding:14px 12px 4px}
-  .seg{font-size:0}
+  /* Sixteen hours across ~190px left every slot about 12px wide — too small to hit.
+     The grid scrolls sideways at a thumb-sized column instead, with the court name
+     pinned to the left edge so you can still tell which row you are on. */
+  .lanes{padding:14px 12px 4px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+  .axis,.lanerow{grid-template-columns:66px 1fr;gap:0 10px;width:max-content;min-width:100%}
+  .ticks,.lane{min-width:704px}                      /* 16 hours x 44px */
+  .lanelabel,.axis>div:first-child{position:sticky;left:0;z-index:3;
+    background:var(--surface);padding-right:8px}
+  .ticks span{font-size:9.5px}
+  .seg{font-size:9px}
   .nrow{grid-template-columns:52px 1fr;row-gap:4px}
   .nrow .av,.nrow .go{display:none}
   .editrow{grid-template-columns:1fr;gap:6px}
   .prow{grid-template-columns:44px 1fr auto;row-gap:8px}
   .prow .rt{grid-column:2}
+}
+@media (max-width:360px){
+  .tabs button{font-size:10px;padding:9px 7px;gap:4px;min-width:50px}
+  .facts{gap:12px 14px}
 }
 </style>
 <style>
@@ -649,6 +656,10 @@ select.inp{cursor:pointer}
    to zero width, so the img/svg max-width above resolves to 0 and the map goes blank.
    This is Leaflet's own guard; it is missing from the inlined copy of its stylesheet. */
 .leaflet-container img,.leaflet-pane svg,.leaflet-pane img{max-width:none!important;max-height:none!important}
+
+/* Grid items default to min-width:auto, so a track sizes to its widest content and a
+   horizontally scrolling child stretches its column instead of scrolling inside it. */
+.deskcols>*,.split>*,.mapsplit>*{min-width:0}
 
 /* realtime indicator */
 .livedot{display:inline-flex;align-items:center;gap:6px;flex:none;margin-left:2px;
@@ -1581,13 +1592,23 @@ function renderBoard(){
   if(curDay===DAYS[0].k) placeNowLine(el);
   renderTray();
 }
-function placeNowLine(el){
+function placeNowLine(el,tries){
   const lane=el.querySelector(".lane"); if(!lane) return;
   const lb=lane.getBoundingClientRect(), eb=el.getBoundingClientRect();
+  /* The board is built before its screen is shown, so the lane can measure zero wide.
+     That put the marker at the far left instead of at the current hour. */
+  if(!lb.width){ if((tries||0)<20) requestAnimationFrame(()=>placeNowLine(el,(tries||0)+1)); return; }
+  const stale=el.querySelector(".nowline"); if(stale) stale.remove();
   const line=document.createElement("div");
   line.className="nowline"; line.title="Now · "+NOW_TXT;
-  line.style.left=(lb.left-eb.left+((NOW_H-6)/16)*lb.width)+"px";
+  const x=lb.left-eb.left+el.scrollLeft+((NOW_H-6)/16)*lb.width;
+  line.style.left=x+"px";
   el.appendChild(line);
+  /* where the grid scrolls, open it on the current hour rather than at 6am */
+  if(el.scrollWidth>el.clientWidth+1&&!el.dataset.nudged){
+    el.dataset.nudged="1";
+    el.scrollLeft=Math.max(0,x-el.clientWidth/3);
+  }
 }
 window.addEventListener("resize",()=>{
   ["lanes","deskLanes"].forEach(id=>{
