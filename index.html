@@ -1714,6 +1714,39 @@ function routeTo(vid){
   return _rtCache[vid];
 }
 function roadKm(vid){ return routeTo(vid).km; }
+/* The graph above is a sketch of the arterials, so a trip that starts and ends off it —
+   anything inside BGC, say — snaps to the two nearest big roads and draws straight lines
+   between them. OSRM has the whole OpenStreetMap network. We draw the graph answer
+   immediately so the map is never empty, then replace it when the real route lands.
+   A failed request just leaves the graph route in place. */
+const OSRM="https://router.project-osrm.org/route/v1/driving/";
+const _osrmAsked={};
+function refineRoute(vid,after){
+  if(_osrmAsked[vid]||typeof fetch!=="function") return;
+  _osrmAsked[vid]=true;
+  const b=venue(vid).coord, a=MY_LOC;
+  fetch(OSRM+a[1]+","+a[0]+";"+b[1]+","+b[0]+"?overview=full&geometries=geojson&steps=true")
+    .then(res=>res.ok?res.json():Promise.reject(res.status))
+    .then(j=>{
+      const rt=j&&j.routes&&j.routes[0];
+      if(!rt||!rt.geometry||!rt.geometry.coordinates.length) return;
+      /* name the streets actually driven, longest stretches first, in order */
+      const legs={},order=[];
+      ((rt.legs&&rt.legs[0]&&rt.legs[0].steps)||[]).forEach(st=>{
+        if(!st.name) return;
+        if(legs[st.name]==null){ legs[st.name]=0; order.push(st.name); }
+        legs[st.name]+=st.distance;
+      });
+      /* Name a street if it carries a real share of the trip. A fixed metre threshold
+         reads "Local roads" on a short hop across BGC and lists side streets on a
+         cross-city run; a share of the total behaves at both scales. */
+      const minLeg=Math.max(200,rt.distance*0.15);
+      _rtCache[vid]={pts:rt.geometry.coordinates.map(c=>[c[1],c[0]]),km:rt.distance/1000,
+        via:order.filter(n=>legs[n]>=minLeg).slice(0,3),straight:false,real:true};
+      after&&after();
+    })
+    .catch(()=>{});
+}
 const etaMin=km=>Math.max(4,Math.round(km/18*60));
 
 function baseLayers(map){
@@ -1793,6 +1826,8 @@ function renderMapPanel(){
           '<span class="k"><b>'+roadKm(v.id).toFixed(1)+' km</b><br>'+
           (nextOpen(v,curDay)==null?'full':hLabel(nextOpen(v,curDay)))+'</span></button>';
       }).join("")+'</div>';
+    /* real distances for the list too, staggered so we ask the demo server gently */
+    list.forEach((v,i)=>setTimeout(()=>refineRoute(v.id,()=>{ if(!mapSel) renderMapPanel(); }),i*240));
     return;
   }
   const v=venue(mapSel), n=openCount(v,curDay,""), r=routeTo(v.id), ph=PHOTO[v.id];
@@ -1849,7 +1884,7 @@ function showRoute(vid,quiet){
   const map=onV?MAP.venue:MAP.big;
   if(!map) return;
   clearRoute(map);
-  const r=findRoute(MY_LOC,v.coord);
+  const r=routeTo(vid);
   MAP.route=[
     L.polyline(r.pts,{color:cssVar("--ink"),weight:9,opacity:.28,lineCap:"round",lineJoin:"round",interactive:false}),
     L.polyline(r.pts,{color:cssVar("--clay"),weight:5,lineCap:"round",lineJoin:"round",interactive:false})
@@ -1858,6 +1893,7 @@ function showRoute(vid,quiet){
   map.fitBounds(L.latLngBounds(r.pts),{padding:[62,62]});
   if(onV) renderRouteBar(v,r); else { mapSel=vid; renderMapPanel(); }
   if(!quiet) toast(v.name+" · "+r.km.toFixed(1)+" km by road, about "+etaMin(r.km)+" min"+(r.via.length?" via "+r.via[0]:""));
+  refineRoute(vid,()=>showRoute(vid,true));
 }
 
 /* ===================== live ===================== */
