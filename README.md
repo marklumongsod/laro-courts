@@ -62,11 +62,21 @@ Everything lives in memory — a refresh resets it. Your own profile and photo p
 
 ## Maps
 
-Tiles come from OpenStreetMap. Driving routes are worked out locally with Dijkstra over a
-simplified graph of Metro Manila arterials — good enough for distance and a sense of the
-journey, but it knows nothing about one-way streets or traffic. For real turn-by-turn,
-swap `findRoute()` for an [OSRM](https://project-osrm.org/) call; the result shape is the
-same, so the drawing code is unchanged.
+Tiles come from OpenStreetMap. Driving routes come from [OSRM](https://project-osrm.org/),
+which routes over the full OpenStreetMap road network, so the line on the map follows real
+streets and respects one-way restrictions. It is not traffic-aware, and the estimated drive
+time is our own figure — a flat 18 km/h, which is closer to Metro Manila than OSRM's
+free-flow speeds.
+
+Behind it is a Dijkstra search over a small hand-built graph of Metro Manila arterials.
+That is what paints the moment a venue opens, so the map is never blank while the request
+is in flight, and it is what stays on screen if OSRM is unreachable. On its own it is only
+an approximation — it has no nodes inside a street grid like BGC's, so short trips come out
+as straight lines between the nearest main roads.
+
+Routes are requested once per venue and cached. The public OSRM demo server has no uptime
+guarantee and is not meant to carry production traffic; a real deployment would self-host it
+or use a paid directions API.
 
 Under a dark theme the tiles are inverted in CSS so the map does not glare against the rest
 of the interface.
